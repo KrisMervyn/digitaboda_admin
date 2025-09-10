@@ -10,23 +10,45 @@ class EnumeratorLoginScreen extends StatefulWidget {
 }
 
 class _EnumeratorLoginScreenState extends State<EnumeratorLoginScreen> {
-  final _usernameController = TextEditingController();
+  final _enumeratorIdController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
   bool _passwordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill the Enumerator ID field with the prefix
+    _enumeratorIdController.text = 'EN-2025-';
+    // Position cursor after the prefix
+    _enumeratorIdController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _enumeratorIdController.text.length),
+    );
+  }
+
+  @override
   void dispose() {
-    _usernameController.dispose();
+    _enumeratorIdController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+    String enumeratorId = _enumeratorIdController.text.trim();
+    String password = _passwordController.text;
+    
+    // Validate Enumerator ID format
+    if (enumeratorId.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter both username and password';
+        _errorMessage = 'Please enter both Enumerator ID and password';
+      });
+      return;
+    }
+
+    if (!enumeratorId.startsWith('EN-') || enumeratorId.length < 8) {
+      setState(() {
+        _errorMessage = 'Please enter a valid Enumerator ID (e.g., EN-2025-0001)';
       });
       return;
     }
@@ -38,8 +60,8 @@ class _EnumeratorLoginScreenState extends State<EnumeratorLoginScreen> {
 
     try {
       Map<String, dynamic> result = await EnumeratorService.login(
-        username: _usernameController.text.trim(),
-        password: _passwordController.text,
+        enumeratorId: enumeratorId,
+        password: password,
       );
 
       if (result['success']) {
@@ -121,7 +143,7 @@ class _EnumeratorLoginScreenState extends State<EnumeratorLoginScreen> {
                 
                 const SizedBox(height: 48),
                 
-                // Username Field
+                // Enumerator ID Field
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -141,7 +163,7 @@ class _EnumeratorLoginScreenState extends State<EnumeratorLoginScreen> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Username',
+                            'Enumerator ID',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -153,12 +175,12 @@ class _EnumeratorLoginScreenState extends State<EnumeratorLoginScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextFormField(
-                          controller: _usernameController,
+                          controller: _enumeratorIdController,
                           decoration: const InputDecoration(
-                            hintText: 'Enter enumerator username',
+                            hintText: 'e.g., EN-2025-0001',
                             border: InputBorder.none,
                             hintStyle: TextStyle(color: Color(0xFFB2BEC3)),
-                            prefixIcon: Icon(Icons.person, color: Color(0xFFF39C12)),
+                            prefixIcon: Icon(Icons.badge, color: Color(0xFFF39C12)),
                           ),
                           style: const TextStyle(
                             fontSize: 16,

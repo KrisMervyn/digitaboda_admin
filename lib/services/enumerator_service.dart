@@ -9,30 +9,38 @@ class EnumeratorService {
   static String? _enumeratorPassword;
 
   static Future<Map<String, dynamic>> login({
-    required String username,
+    String? username,
+    String? enumeratorId,
     required String password,
   }) async {
     try {
+      // Prepare request body
+      Map<String, dynamic> requestBody = {'password': password};
+      if (enumeratorId != null) {
+        requestBody['enumeratorId'] = enumeratorId;
+      } else if (username != null) {
+        requestBody['username'] = username;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/enumerator/login/'),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        _enumeratorUsername = username;
-        _enumeratorPassword = password;
-        
         final responseData = jsonDecode(response.body);
         print('🔍 Service: Raw response = $responseData');
         
         // Extract the actual enumerator data from Django response
         final enumeratorData = responseData['data'] ?? responseData;
+        
+        // Store the actual username from the response for future API calls
+        // The backend returns the username in the response data
+        _enumeratorUsername = enumeratorData['username'] ?? (enumeratorId ?? username!);
+        _enumeratorPassword = password;
         print('📊 Service: Extracted enumerator data = $enumeratorData');
         
         return {
@@ -237,6 +245,54 @@ class EnumeratorService {
         return {
           'success': false,
           'error': error['error'] ?? 'Failed to reject rider',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Connection error: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final authHeader = _getAuthHeader();
+      if (authHeader == null) {
+        return {'success': false, 'error': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/enumerator/change-password/'),
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        // Update stored password for future requests
+        _enumeratorPassword = newPassword;
+        
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password changed successfully',
+        };
+      } else {
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'error': error['error'] ?? 'Failed to change password',
         };
       }
     } catch (e) {

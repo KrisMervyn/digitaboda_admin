@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/enumerator_service.dart';
 import 'enumerator_pending_riders_screen.dart';
+import 'enumerator_change_password_screen.dart';
 
 class EnumeratorDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> enumeratorInfo;
@@ -152,12 +153,29 @@ class _EnumeratorDashboardScreenState extends State<EnumeratorDashboardScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'change_password') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const EnumeratorChangePasswordScreen(),
+                  ),
+                );
+              } else if (value == 'logout') {
                 EnumeratorService.logout();
                 Navigator.of(context).pushReplacementNamed('/');
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock, color: Color(0xFF2E7D32)),
+                    SizedBox(width: 8),
+                    Text('Change Password'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(
