@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class EnumeratorService {
-  static const String baseUrl = 'http://192.168.1.19:8000/api';
+  static const String baseUrl = 'http://192.168.1.3:8000/api';
   
   // Store enumerator credentials for authentication
   static String? _enumeratorUsername;
@@ -37,9 +37,8 @@ class EnumeratorService {
         // Extract the actual enumerator data from Django response
         final enumeratorData = responseData['data'] ?? responseData;
         
-        // Store the actual username from the response for future API calls
-        // The backend returns the username in the response data
-        _enumeratorUsername = enumeratorData['username'] ?? (enumeratorId ?? username!);
+        // Store the enumerator ID for future API calls (backend expects EN-XXXX format for auth)
+        _enumeratorUsername = enumeratorData['unique_id'] ?? enumeratorData['uniqueId'] ?? (enumeratorId ?? username!);
         _enumeratorPassword = password;
         print('📊 Service: Extracted enumerator data = $enumeratorData');
         

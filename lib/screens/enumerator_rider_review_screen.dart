@@ -217,6 +217,72 @@ class _EnumeratorRiderReviewScreenState extends State<EnumeratorRiderReviewScree
     );
   }
 
+  Widget _buildPhotoSection(String title, String? photoUrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey.shade100,
+          ),
+          child: photoUrl != null && photoUrl.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    photoUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error, color: Colors.red),
+                            Text('Failed to load image'),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.image_not_supported, 
+                          size: 48, color: Colors.grey),
+                      Text('No image available'),
+                    ],
+                  ),
+                ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -341,6 +407,22 @@ class _EnumeratorRiderReviewScreenState extends State<EnumeratorRiderReviewScree
                 ),
               ),
             ),
+
+            const SizedBox(height: 24),
+
+            // Photos Section
+            const Text(
+              'Rider Photos',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2C3E50),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            _buildPhotoSection('Profile Photo', widget.rider['profilePhoto']),
+            _buildPhotoSection('National ID Photo', widget.rider['nationalIdPhoto']),
 
             const SizedBox(height: 24),
 

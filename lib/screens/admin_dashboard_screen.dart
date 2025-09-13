@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/admin_service.dart';
 import 'admin_pending_riders_screen.dart';
+import 'admin_pending_riders_by_enumerator_screen.dart';
+import 'admin_enumerators_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -180,7 +182,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => const AdminPendingRidersScreen(),
+                                    builder: (context) => const AdminPendingRidersByEnumeratorScreen(),
                                   ),
                                 );
                               },
@@ -192,17 +194,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               const Color(0xFF27AE60),
                             ),
                             _buildStatCard(
-                              'Rejected',
-                              _stats?['rejectedRiders']?.toString() ?? '0',
-                              Icons.cancel,
+                              'Deactivated',
+                              _stats?['inactiveEnumerators']?.toString() ?? '0',
+                              Icons.person_off,
                               const Color(0xFFE74C3C),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const AdminEnumeratorsScreen(showInactiveOnly: true),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
                         
                         const SizedBox(height: 24),
                         
-                        // Quick Actions
+                        // Enumerator Stats Grid
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
@@ -220,38 +229,78 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Quick Actions',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2D3436),
-                                ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.assignment_ind,
+                                    color: const Color(0xFF2C3E50),
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Enumerator Management',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2D3436),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
                               
-                              _buildActionButton(
-                                'Review Pending Applications',
-                                'Review and approve/reject rider applications',
-                                Icons.assignment,
-                                const Color(0xFFF39C12),
-                                () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => const AdminPendingRidersScreen(),
-                                    ),
-                                  );
-                                },
+                              GridView.count(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                childAspectRatio: 2.2,
+                                children: [
+                                  _buildMiniStatCard(
+                                    'Total Enumerators',
+                                    _stats?['totalEnumerators']?.toString() ?? '0',
+                                    Icons.group,
+                                    const Color(0xFF9B59B6),
+                                  ),
+                                  _buildMiniStatCard(
+                                    'Active Enumerators',
+                                    _stats?['activeEnumerators']?.toString() ?? '0',
+                                    Icons.verified_user,
+                                    const Color(0xFF27AE60),
+                                  ),
+                                ],
                               ),
                               
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 16),
                               
-                              _buildActionButton(
-                                'Refresh Dashboard',
-                                'Update dashboard statistics',
-                                Icons.refresh,
-                                const Color(0xFF3498DB),
-                                _loadDashboardStats,
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => const AdminEnumeratorsScreen(),
+                                      ),
+                                    ).then((_) => _loadDashboardStats());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF9B59B6),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.manage_accounts),
+                                  label: const Text(
+                                    'Manage Enumerators',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -394,61 +443,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildActionButton(String title, String subtitle, IconData icon, Color color, VoidCallback onPressed) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.2)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: color,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2D3436),
-                    ),
+
+  Widget _buildMiniStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF636E72),
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF636E72),
                   ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey.shade400,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
