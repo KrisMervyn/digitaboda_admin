@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class PhotoVerificationService {
-  static const String baseUrl = 'http://192.168.1.3:8000/api';
+  static const String baseUrl = 'http://192.168.1.19:8000/api';
   
   // Store authentication token
   static String? _authToken;
