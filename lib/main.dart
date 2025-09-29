@@ -35,7 +35,7 @@ class DigitalBodaAdminApp extends StatelessWidget {
             ),
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
