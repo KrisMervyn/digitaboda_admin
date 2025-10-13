@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/enumerator_service.dart';
 import 'enumerator_pending_riders_screen.dart';
 import 'enumerator_change_password_screen.dart';
+import 'trainer_attendance_screen.dart';
 
 class EnumeratorDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> enumeratorInfo;
@@ -396,34 +397,64 @@ class _EnumeratorDashboardScreenState extends State<EnumeratorDashboardScreen> {
                         const SizedBox(height: 16),
 
                         // Action Buttons
-                        Row(
+                        Column(
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => const EnumeratorPendingRidersScreen(),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => const EnumeratorPendingRidersScreen(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.pending_actions, size: 20),
+                                    label: const Text(
+                                      'Review Pending',
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(Icons.pending_actions, size: 20),
-                                label: const Text(
-                                  'Review Pending',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF39C12),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.all(12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFF39C12),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => const TrainerAttendanceScreen(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.school, size: 20),
+                                    label: const Text(
+                                      'Training',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF27AE60),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   // Navigate to all assigned riders

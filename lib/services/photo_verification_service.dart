@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/environment.dart';
 
 class PhotoVerificationService {
-  static const String baseUrl = 'https://dashboard.digitalboda.com/api';
+  static String get baseUrl => EnvironmentConfig.apiBaseUrl;
   
   // Store authentication token
   static String? _authToken;

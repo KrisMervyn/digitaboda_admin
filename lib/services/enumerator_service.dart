@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/environment.dart';
 
 class EnumeratorService {
-  static const String baseUrl = 'https://dashboard.digitalboda.com/api';
+  static String get baseUrl => EnvironmentConfig.apiBaseUrl;
   
   // Store enumerator credentials for authentication
   static String? _enumeratorUsername;
@@ -292,6 +293,122 @@ class EnumeratorService {
         return {
           'success': false,
           'error': error['error'] ?? 'Failed to change password',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Connection error: $e',
+      };
+    }
+  }
+
+  // Training-related methods
+  static Future<Map<String, dynamic>> getTrainingStudents() async {
+    try {
+      final authHeader = _getAuthHeader();
+      if (authHeader == null) {
+        return {'success': false, 'error': 'Not authenticated'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/training/trainer/students/?trainer_id=$_enumeratorUsername'),
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Failed to load training students',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Connection error: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getAvailableModules() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/training/modules/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Failed to load training modules',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Connection error: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> markStudentAttendance({
+    required String studentPhone,
+    required int sessionId,
+    required String status,
+    required String sessionDate,
+    String? notes,
+  }) async {
+    try {
+      final authHeader = _getAuthHeader();
+      if (authHeader == null) {
+        return {'success': false, 'error': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/training/trainer/mark-attendance/'),
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'trainer_id': _enumeratorUsername,
+          'student_phone': studentPhone,
+          'session_id': sessionId,
+          'status': status,
+          'session_date': sessionDate,
+          'notes': notes ?? '',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': data['data'],
+          'message': data['message'],
+        };
+      } else {
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'error': error['error'] ?? 'Failed to mark attendance',
         };
       }
     } catch (e) {
