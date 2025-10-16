@@ -348,16 +348,51 @@ class EnumeratorService {
         },
       ).timeout(const Duration(seconds: 10));
 
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Simple, reliable extraction that works in both debug and release
+        List<dynamic> rawModules = [];
+        
+        try {
+          // The backend returns: {"success": true, "data": [...], "message": "..."}
+          if (data is Map && data['data'] is List) {
+            rawModules = List<dynamic>.from(data['data']);
+          }
+        } catch (e) {
+          return {
+            'success': false,
+            'error': 'Failed to parse modules data: $e',
+          };
+        }
+        
+        // Simple, direct module processing
+        List<Map<String, dynamic>> modules = [];
+        for (var rawModule in rawModules) {
+          try {
+            if (rawModule is Map<String, dynamic>) {
+              // Directly convert to ensure type safety
+              Map<String, dynamic> module = Map<String, dynamic>.from(rawModule);
+              
+              // Basic validation - ensure ID exists and is valid
+              if (module['id'] != null && module['id'] is num && module['id'] > 0) {
+                modules.add(module);
+              }
+            }
+          } catch (e) {
+            // Skip invalid modules silently
+          }
+        }
+        
         return {
           'success': true,
-          'data': data['data'],
+          'data': modules,
         };
       } else {
         return {
           'success': false,
-          'error': 'Failed to load training modules',
+          'error': 'Failed to load training modules (Status: ${response.statusCode})',
         };
       }
     } catch (e) {
@@ -422,5 +457,22 @@ class EnumeratorService {
   static void logout() {
     _enumeratorUsername = null;
     _enumeratorPassword = null;
+  }
+  
+  // Helper functions for robust data parsing in release builds
+  static int? _parseToInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+  
+  static double? _parseToDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'screens/role_selection_screen.dart';
+import 'config/environment.dart';
 
 void main() {
+  // Print environment configuration for debugging
+  EnvironmentConfig.printDebugInfo();
   runApp(const DigitalBodaAdminApp());
 }
 

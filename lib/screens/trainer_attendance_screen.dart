@@ -28,6 +28,8 @@ class _TrainerAttendanceScreenState extends State<TrainerAttendanceScreen> {
     });
 
     try {
+      print('🔄 Loading training data...');
+      
       // Load students and modules in parallel
       final studentsFuture = EnumeratorService.getTrainingStudents();
       final modulesFuture = EnumeratorService.getAvailableModules();
@@ -36,20 +38,46 @@ class _TrainerAttendanceScreenState extends State<TrainerAttendanceScreen> {
       final studentsResult = results[0];
       final modulesResult = results[1];
 
-      if (studentsResult['success'] && modulesResult['success']) {
+      print('📊 Students Result: $studentsResult');
+      print('📚 Modules Result: $modulesResult');
+
+      // Handle results more carefully
+      bool studentsSuccess = studentsResult['success'] == true;
+      bool modulesSuccess = modulesResult['success'] == true;
+
+      if (studentsSuccess && modulesSuccess) {
+        final studentsData = studentsResult['data'] ?? {};
+        final modulesData = modulesResult['data'] ?? [];
+        
+        print('👥 Students Data: $studentsData');
+        print('📚 Modules Data: $modulesData');
+        
         setState(() {
-          _trainerInfo = studentsResult['data']['trainer'];
-          _students = List<Map<String, dynamic>>.from(studentsResult['data']['students'] ?? []);
-          _modules = List<Map<String, dynamic>>.from(modulesResult['data'] ?? []);
+          _trainerInfo = studentsData['trainer'];
+          _students = List<Map<String, dynamic>>.from(studentsData['students'] ?? []);
+          _modules = List<Map<String, dynamic>>.from(modulesData);
           _isLoading = false;
         });
+        
+        print('✅ Loaded ${_students.length} students and ${_modules.length} modules');
       } else {
+        String errorDetails = '';
+        if (!studentsSuccess) {
+          errorDetails += 'Students: ${studentsResult['error']}\n';
+        }
+        if (!modulesSuccess) {
+          errorDetails += 'Modules: ${modulesResult['error']}\n';
+        }
+        
         setState(() {
-          _errorMessage = studentsResult['error'] ?? modulesResult['error'] ?? 'Failed to load data';
+          _errorMessage = 'Failed to load data:\n$errorDetails';
           _isLoading = false;
         });
+        
+        print('❌ Load failed: $errorDetails');
       }
     } catch (e) {
+      print('❌ Exception during load: $e');
       setState(() {
         _errorMessage = 'Connection error: $e';
         _isLoading = false;
@@ -185,7 +213,8 @@ class _TrainerAttendanceScreenState extends State<TrainerAttendanceScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            // Show modules debug info
             Container(
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -197,6 +226,34 @@ class _TrainerAttendanceScreenState extends State<TrainerAttendanceScreen> {
                 children: [
                   Icon(
                     Icons.info_outline,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 20,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Debug Info:\n${_modules.length} training modules loaded\n\nModules: ${_modules.map((m) => m['title'] ?? 'Unknown').join(', ')}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.help_outline,
                     color: Colors.white.withOpacity(0.9),
                     size: 20,
                   ),
@@ -454,62 +511,155 @@ class _AttendanceFormState extends State<AttendanceForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Module Selection
-        DropdownButtonFormField<int>(
-          value: _selectedModuleId,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Select Module',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-          items: widget.modules.map((module) {
-            return DropdownMenuItem<int>(
-              value: module['id'],
-              child: Flexible(
-                child: Text(
-                  module['title'] ?? 'Unknown Module',
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.modules.isEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  border: Border.all(color: Colors.orange),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'No training modules available. Please check your connection and try again.',
+                        style: TextStyle(color: Colors.orange, fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedModuleId = value;
-              _selectedSessionId = null; // Reset session selection
-            });
-          },
+            ] else ...[
+              DropdownButtonFormField<int>(
+                value: _selectedModuleId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Select Module',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: widget.modules.where((module) {
+                  // More flexible validation for different number types
+                  bool hasValidId = module != null && 
+                                  module['id'] != null && 
+                                  module['id'] is num && 
+                                  (module['id'] as num) > 0;
+                  bool hasTitle = module['title'] != null;
+                  
+                  return hasValidId && hasTitle;
+                }).map<DropdownMenuItem<int>>((module) {
+                  // Convert num to int safely
+                  final moduleId = (module['id'] as num).toInt();
+                  final moduleTitle = module['title'] as String? ?? 'Unknown Module';
+                  
+                  return DropdownMenuItem<int>(
+                    value: moduleId,
+                    child: Text(
+                      moduleTitle,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedModuleId = value;
+                    _selectedSessionId = null; // Reset session selection
+                  });
+                },
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${widget.modules.length} modules available',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 16),
 
         // Session Selection
         if (selectedModule != null) ...[
-          DropdownButtonFormField<int>(
-            value: _selectedSessionId,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Select Session',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            items: availableSessions.map((session) {
-              return DropdownMenuItem<int>(
-                value: session['id'],
-                child: Flexible(
-                  child: Text(
-                    'Session ${session['session_number']}: ${session['title']}',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (availableSessions.isEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    border: Border.all(color: Colors.orange),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'No sessions available for this module.',
+                          style: TextStyle(color: Colors.orange, fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedSessionId = value;
-              });
-            },
+              ] else ...[
+                DropdownButtonFormField<int>(
+                  value: _selectedSessionId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Session',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: availableSessions.where((session) {
+                    bool hasValidId = session != null && 
+                                    session['id'] != null && 
+                                    session['id'] is num && 
+                                    (session['id'] as num) > 0;
+                    bool hasTitle = session['title'] != null;
+                    
+                    return hasValidId && hasTitle;
+                  }).map<DropdownMenuItem<int>>((session) {
+                    final sessionId = (session['id'] as num).toInt();
+                    final sessionNumber = session['session_number'] ?? 0;
+                    final sessionTitle = session['title'] as String? ?? 'Unknown Session';
+                    
+                    return DropdownMenuItem<int>(
+                      value: sessionId,
+                      child: Text(
+                        'Session $sessionNumber: $sessionTitle',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSessionId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${availableSessions.length} sessions available',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 16),
         ],
